@@ -40,7 +40,9 @@ tail -n 3000 cooking.preprocessed.txt > cooking.test
 ~/fastText-0.9.2/fasttext supervised -input cooking.train -output model_cooking -lr 1.0 -epoch 25 -wordNgrams 2
 ~/fastText-0.9.2/fasttext test model_cooking.bin cooking.test
 
-
+# Homework L1
+~/fastText-0.9.2/fasttext supervised -input /workspace/datasets/fasttext/training_data.txt -output product_classifier -lr 1.0 -epoch 25 -wordNgrams 2
+~/fastText-0.9.2/fasttext test product_classifier.bin /workspace/datasets/fasttext/test_data.txt
 
 
 
