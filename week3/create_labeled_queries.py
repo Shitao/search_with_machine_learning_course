@@ -49,13 +49,32 @@ queries_df = pd.read_csv(queries_file_name)[['category', 'query']]
 queries_df = queries_df[queries_df['category'].isin(categories)]
 
 # IMPLEMENT ME: Convert queries to lowercase, and optionally implement other normalization, like stemming.
+def process_query(x):
+    x_lower = x.lower()
+    return stemmer.stem(x_lower)
+
+queries_df['query'] = queries_df.apply(lambda x: process_query(x['query']), axis=1)
 
 # IMPLEMENT ME: Roll up categories to ancestors to satisfy the minimum number of queries per category.
+query_count = queries_df.groupby('category')['query'].count()
+min_query = query_count.min()
+query_count_threshold = 10000
+parents_df.loc[len(parents_df.index)] = [root_category_id, root_category_id]
+
+while min_query < query_count_threshold:
+    min_list = query_count[query_count < query_count_threshold].index
+    parent_update_dict = parents_df.set_index('category')['parent'][min_list].to_dict()
+    queries_df['category'].replace(parent_update_dict, inplace=True)
+    query_count = queries_df.groupby('category')['query'].count()
+    min_query = query_count.min()
+    print(min_query)
+
+print("Number of categories: "+ str(queries_df['category'].nunique()))
 
 # Create labels in fastText format.
 queries_df['label'] = '__label__' + queries_df['category']
 
 # Output labeled query data as a space-separated file, making sure that every category is in the taxonomy.
-queries_df = queries_df[queries_df['category'].isin(categories)]
-queries_df['output'] = queries_df['label'] + ' ' + queries_df['query']
-queries_df[['output']].to_csv(output_file_name, header=False, sep='|', escapechar='\\', quoting=csv.QUOTE_NONE, index=False)
+# queries_df = queries_df[queries_df['category'].isin(categories)]
+# queries_df['output'] = queries_df['label'] + ' ' + queries_df['query']
+# queries_df[['output']].to_csv(output_file_name, header=False, sep='|', escapechar='\\', quoting=csv.QUOTE_NONE, index=False)
