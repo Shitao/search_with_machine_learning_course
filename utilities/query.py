@@ -12,6 +12,7 @@ from urllib.parse import urljoin
 import pandas as pd
 import fileinput
 import logging
+from sentence_transformers import SentenceTransformer
 
 
 logger = logging.getLogger(__name__)
@@ -213,12 +214,30 @@ def search(client, user_query, index="bbuy_products", sort="_score", sortDir="de
         hits = response['hits']['hits']
         print(json.dumps(response, indent=2))
 
+def vector_search(client, user_query, index="bbuy_products"):
+    embedding = transformer_model.encode(user_query)
+    query_obj = {
+        "query": {
+            "knn": {
+                "name_embedding": {
+                    "vector": embedding,
+                    "k": 10,
+                }
+            }
+        }
+    }
+
+    response = client.search(query_obj, index=index)
+    if response and response['hits']['hits'] and len(response['hits']['hits']) > 0:
+        hits = response['hits']['hits']
+        print(json.dumps(response, indent=2))
 
 if __name__ == "__main__":
     host = 'localhost'
     port = 9200
     auth = ('admin', 'admin')  # For testing only. Don't store credentials in code.
     model = fasttext.load_model('/workspace/datasets/fasttext/query_model_v1.bin')
+    transformer_model = SentenceTransformer('all-MiniLM-L6-v2')
     parser = argparse.ArgumentParser(description='Build LTR.')
     general = parser.add_argument_group("general")
     general.add_argument("-i", '--index', default="bbuy_products",
@@ -230,6 +249,7 @@ if __name__ == "__main__":
     general.add_argument('--synonyms', action='store_true', default=False, help='Search with synonym')
     general.add_argument('--user',
                          help='The OpenSearch admin.  If this is set, the program will prompt for password too. If not set, use default of admin/admin')
+    general.add_argument('--vector', action='store_true', help='Vector search flag')
 
     args = parser.parse_args()
 
@@ -262,7 +282,9 @@ if __name__ == "__main__":
         query = input(query_prompt).rstrip()
         if query == "Exit":
             break
-        search(client=opensearch, user_query=query, index=index_name)
-
+        if args.vector:
+            vector_search(client=opensearch, user_query=query, index=index_name)
+        else:
+            search(client=opensearch, user_query=query, index=index_name, synonyms=args.synonyms)
 
     
